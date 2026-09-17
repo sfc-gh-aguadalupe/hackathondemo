@@ -1,0 +1,5 @@
+.DS_Store
+.cortex/
+__pycache__/
+app/__pycache__/
+*.pyc

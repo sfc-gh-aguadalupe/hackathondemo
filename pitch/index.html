@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="snowflake-source" content="cortex-agent-authored">
+<title>The Agentic GTM Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0e17;
+    --bg-2: #11162a;
+    --panel: rgba(255,255,255,.04);
+    --panel-2: rgba(255,255,255,.07);
+    --line: rgba(255,255,255,.10);
+    --text: #e8ecf6;
+    --muted: #97a3c0;
+    --accent: #29b5e8;
+    --accent-2: #7c6ff0;
+    --good: #3ddc97;
+    --warn: #ffc857;
+    --idea: #b48ef0;
+    --red: #ff6b7a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    background: radial-gradient(1200px 800px at 80% -10%, #1a2342 0%, var(--bg) 55%) fixed;
+    color: var(--text);
+    overflow: hidden;
+  }
+  #deck { height: 100vh; position: relative; }
+
+  .slide {
+    display: none;
+    position: absolute; inset: 0;
+    flex-direction: column; justify-content: center; align-items: center;
+    text-align: center;
+    padding: clamp(24px, 6vw, 84px);
+    padding-top: 60px;
+  }
+  .slide.active { display: flex; }
+
+  .act {
+    font-size: 13px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 10px;
+  }
+  .act .rule { display:inline-block; width: 34px; height: 2px; background: var(--accent);
+    vertical-align: middle; margin: 0 10px; border-radius: 2px; }
+  .act .rule.l { display:inline-block; }
+  h1 { font-size: clamp(40px, 7vw, 96px); font-weight: 900; line-height: 1.02;
+       letter-spacing: -.02em; }
+  h2 { font-size: clamp(30px, 4.6vw, 60px); font-weight: 800; line-height: 1.06;
+       letter-spacing: -.015em; margin-bottom: 18px; }
+  .sub { color: var(--muted); font-size: clamp(15px, 1.8vw, 21px); font-weight: 400;
+         max-width: 760px; margin-top: 18px; line-height: 1.5;
+         margin-left: auto; margin-right: auto; }
+  .kicker {
+    margin-top: 34px; font-size: clamp(15px, 1.7vw, 19px); font-weight: 600;
+    color: var(--text);
+    padding: 10px 22px; border: 1px solid var(--line); border-radius: 30px;
+    background: var(--panel);
+  }
+  .kicker em { color: var(--accent); font-style: normal; }
+
+  .cards { margin-left: auto; margin-right: auto; display: grid; gap: 14px; margin-top: 28px; max-width: 1080px; }
+  .cards.c3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .cards.c2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 18px 20px; backdrop-filter: blur(6px);
+  }
+  .card h3 { font-size: 17px; font-weight: 700; margin-bottom: 6px; display:flex; align-items:center; gap:8px; }
+  .card p { font-size: 13.5px; color: var(--muted); line-height: 1.45; }
+  .badge { font-size: 10.5px; font-weight: 700; letter-spacing:.06em; padding: 3px 8px;
+           border-radius: 20px; margin-left: auto; white-space: nowrap; }
+  .badge.live  { background: rgba(61,220,151,.15); color: var(--good); border:1px solid rgba(61,220,151,.4); }
+  .badge.built { background: rgba(41,181,232,.15); color: var(--accent); border:1px solid rgba(41,181,232,.4); }
+  .badge.idea  { background: rgba(180,142,240,.15); color: var(--idea); border:1px solid rgba(180,142,240,.4); }
+
+  ul.clean { list-style: none; margin-top: 20px; max-width: 780px; text-align: left; }
+  ul.clean li { padding: 9px 0 9px 26px; position: relative; color: var(--text); text-align: left;
+                font-size: clamp(14px, 1.6vw, 18px); line-height: 1.45; }
+  ul.clean li::before { content: "→"; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+  ul.clean li b { color: #fff; }
+
+  /* chaos diagram */
+  .chaos { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+             margin: 26px 0 8px; max-width: 900px; }
+  .sysbox {
+    border: 1px dashed rgba(255,107,122,.55); color: var(--red);
+    padding: 10px 16px; border-radius: 10px; font-size: 13.5px; font-weight: 600;
+    background: rgba(255,107,122,.06);
+  }
+  .chaos-note { color: var(--muted); font-size: 13px; margin-top: 6px; }
+
+  /* vault diagram */
+  .vault-wrap { display:flex; align-items:center; justify-content:center;
+                 gap: clamp(24px,5vw,70px); margin-top: 26px; flex-wrap: wrap; }
+  .vault {
+    width: clamp(150px, 20vw, 210px); height: clamp(150px, 20vw, 210px); border-radius: 50%;
+    background: conic-gradient(from 210deg, var(--accent), var(--accent-2), var(--accent));
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    box-shadow: 0 0 70px rgba(41,181,232,.35); flex-shrink: 0;
+  }
+  .vault span { font-size: 30px; }
+  .vault b { font-size: 15px; margin-top: 6px; letter-spacing: .08em; }
+  .orbit { display:flex; flex-direction:column; gap: 10px; }
+  .chip {
+    border: 1px solid var(--line); background: var(--panel); border-radius: 30px;
+    padding: 8px 16px; font-size: 13.5px; color: var(--muted); width: max-content;
+  }
+  .chip b { color: var(--text); }
+
+  /* layers */
+  .layers-wrap { display:flex; flex-direction:column; align-items:center; width:100%; }
+  .layer {
+    border: 1px solid var(--line); border-radius: 12px; padding: 12px 18px;
+    background: var(--panel); display: flex; gap: 14px; align-items: baseline;
+    max-width: 880px;
+  }
+  .layer + .layer { margin-top: 9px; }
+  .layer b { text-align: right; }
+  .layer b { min-width: 210px; font-size: 15px; }
+  .layer span { color: var(--muted); font-size: 13.5px; }
+
+  /* pipeline */
+  .pipe { display: flex; gap: 10px; margin-top: 30px; flex-wrap: wrap; max-width: 1000px; align-items: stretch; }
+  .step {
+    flex: 1 1 190px; border: 1px solid var(--line); border-radius: 12px; padding: 16px;
+    background: var(--panel); position: relative;
+  }
+  .step .n { font-size: 12px; font-weight: 800; color: var(--accent); margin-bottom: 8px; letter-spacing:.1em; }
+  .step b { font-size: 15px; display: block; margin-bottom: 5px; }
+  .step span { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+  .step:not(:last-child)::after {
+    content: "→"; position: absolute; right: -13px; top: 40%; color: var(--accent);
+    font-weight: 800; z-index: 2; font-size: 18px;
+  }
+
+  /* stats */
+  .stats { margin-left: auto; margin-right: auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(170px,1fr)); gap: 14px; margin-top: 26px; max-width: 1000px; }
+  .stat { border: 1px solid var(--line); border-radius: 14px; padding: 18px; background: var(--panel); }
+  .stat .v { font-size: clamp(30px, 3.6vw, 46px); font-weight: 900; letter-spacing: -.02em; }
+  .stat .l { color: var(--muted); font-size: 12.5px; margin-top: 4px; line-height: 1.4; }
+
+  /* mock slack */
+  .slack {
+    margin-top: 26px; max-width: 470px; border: 1px solid var(--line); border-radius: 12px;
+    background: #1a1d21; padding: 14px 16px; font-size: 13px; line-height: 1.55;
+  }
+  .slack .hd { color: #9a9b9f; font-size: 11px; letter-spacing:.06em; margin-bottom: 8px; text-transform: uppercase; }
+  .slack b { color: #e8ecf6; }
+  .slack .dim { color: #8d8d92; }
+
+  /* roadmap */
+  .rag {
+    border: 1px solid rgba(255,200,87,.45); background: rgba(255,200,87,.07);
+    border-radius: 14px; padding: 18px 22px; margin-top: 26px; max-width: 1080px;
+  }
+  .rag h3 { font-size: 18px; color: var(--warn); margin-bottom: 8px; }
+  .rag p { color: var(--text); font-size: 14px; line-height: 1.55; max-width: 940px; }
+  .rag .chip {
+    display: inline-block; border: 1px solid rgba(255,200,87,.5); color: var(--warn);
+    border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 700; margin-top: 10px;
+  }
+  .cols { margin-left: auto; margin-right: auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 16px; max-width: 1080px; }
+  .col { border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; background: var(--panel); }
+  .col h4 { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  .col ul { list-style: none; }
+  .col li { font-size: 13.5px; color: var(--muted); padding: 5px 0; line-height: 1.45; }
+  .col li b { color: var(--text); font-weight: 600; }
+  .iss { display:inline-block; background: var(--panel-2); border: 1px solid var(--line);
+         border-radius: 6px; padding: 0 6px; font-size: 10.5px; font-weight: 700; color: var(--muted); margin-left: 4px; }
+
+  /* hud */
+  .hud {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px clamp(20px, 5vw, 60px); pointer-events: none;
+  }
+  .hud .brand { font-size: 12px; font-weight: 700; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; }
+  .hud .counter { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .progress { position: fixed; bottom: 0; left: 0; height: 3px; z-index: 51;
+              background: linear-gradient(90deg, var(--accent), var(--accent-2));
+              transition: width .35s cubic-bezier(.4,0,.2,1); border-radius: 0 2px 0 0; }
+  .hint { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+          color: var(--muted); font-size: 11.5px; opacity: .8; z-index: 50; pointer-events: none;}
+
+  .fade .rise { opacity: 0; transform: translateY(26px); }
+  .fade.active .rise { opacity: 1; transform: none;
+    transition: opacity .55s cubic-bezier(.2,.7,.2,1), transform .55s cubic-bezier(.2,.7,.2,1); }
+  .fade.active .rise:nth-child(2) { transition-delay: .08s; }
+  .fade.active .rise:nth-child(3) { transition-delay: .16s; }
+  .fade.active .rise:nth-child(4) { transition-delay: .24s; }
+  .fade.active .rise:nth-child(5) { transition-delay: .32s; }
+  .fade.active .rise:nth-child(6) { transition-delay: .40s; }
+</style>
+</head>
+<body>
+<div id="deck">
+
+  <!-- 1 · TITLE -->
+  <section class="slide fade active" id="slide-1">
+    <div class="act"><span class="rule l"></span>Enterprise GTM · Multi-Agent System</div>
+    <div class="rise">
+      <h1>The Agentic<br><span style="background:linear-gradient(90deg,var(--accent),var(--accent-2)); -webkit-background-clip:text; background-clip:text; color:transparent;">GTM Engine</span></h1>
+    </div>
+    <p class="sub rise">From scattered data to account intelligence — a vault-first multi-agent
+    system for running go-to-market on large accounts and territories.</p>
+    <div class="kicker rise">Built by SEs, for SEs. <em>Running in production.</em></div>
+  </section>
+
+  <!-- 2 · PROBLEM -->
+  <section class="slide fade" id="slide-2">
+    <div class="act"><span class="rule l"></span>Act I — The Journey</div>
+    <h2 class="rise">Covering big accounts today</h2>
+    <div class="chaos rise">
+      <div class="sysbox">CRM</div>
+      <div class="sysbox">Data warehouse</div>
+      <div class="sysbox">Calendar</div>
+      <div class="sysbox">Email</div>
+      <div class="sysbox">Spreadsheets</div>
+    </div>
+    <p class="chaos-note rise">Five systems. Zero shared memory.</p>
+    <ul class="clean rise">
+      <li><b>Every review is a scramble</b> — account briefings and QBR prep take days of manual gathering</li>
+      <li><b>Intelligence is tribal knowledge</b> — when the SE is off, the knowledge is off</li>
+      <li><b>The team sees none of it</b> — pipeline health lives in one person's head</li>
+    </ul>
+    <div class="kicker rise">Every enterprise SE team runs on <em>this</em>.</div>
+  </section>
+
+  <!-- 3 · VAULT FIRST -->
+  <section class="slide fade" id="slide-3">
+    <div class="act"><span class="rule l"></span>Act II — The Core Idea</div>
+    <h2 class="rise">One vault. Every agent reads it.</h2>
+    <div class="vault-wrap rise">
+      <div class="vault"><span>🗄️</span><b>THE VAULT</b></div>
+      <div class="orbit">
+        <div class="chip"><b>Account intelligence</b> · 88 snapshots</div>
+        <div class="chip"><b>Use cases</b> · stages, hygiene flags, SE comments</div>
+        <div class="chip"><b>Interactions</b> · meetings, stakeholders</div>
+        <div class="chip"><b>Portfolio</b> · cross-account view</div>
+      </div>
+    </div>
+    <ul class="clean rise">
+      <li><b>Plain markdown + structured frontmatter</b> — readable by humans, parseable by machines, syncable to search</li>
+      <li><b>One writer, many readers</b> — the Curator refreshes; everything else consults</li>
+      <li><b>Every answer traces back to it</b> — no orphaned analysis</li>
+    </ul>
+    <div class="kicker rise">Agents don't guess. <em>They read.</em></div>
+  </section>
+
+  <!-- 4 · ROSTER -->
+  <section class="slide fade" id="slide-4">
+    <div class="act"><span class="rule l"></span>Act II — The Team</div>
+    <h2 class="rise">Six agents, one job each</h2>
+    <div class="cards c3 rise">
+      <div class="card"><h3>Curator <span class="badge live">PRODUCTION</span></h3>
+        <p>Keeps the vault fresh — parallel refresh of every account, overnight.</p></div>
+      <div class="card"><h3>Implementation <span class="badge live">PRODUCTION</span></h3>
+        <p>Develops features with human-in-the-loop Slack gates. LangGraph inside.</p></div>
+      <div class="card"><h3>Q&amp;A <span class="badge built">BUILT</span></h3>
+        <p>The team's read-only interface — asks the vault from Slack.</p></div>
+      <div class="card"><h3>Analyst <span class="badge idea">IDEATION</span></h3>
+        <p>Finds patterns across accounts, builds project specs.</p></div>
+      <div class="card"><h3>Researcher <span class="badge idea">IDEATION</span></h3>
+        <p>External intelligence gathering.</p></div>
+      <div class="card"><h3>PS Agent <span class="badge idea">IDEATION</span></h3>
+        <p>Post-sales consumption signals.</p></div>
+    </div>
+    <div class="kicker rise">Honest badges, on purpose — <em>the roadmap is visible on the roster.</em></div>
+  </section>
+
+  <!-- 5 · ANATOMY -->
+  <section class="slide fade" id="slide-5">
+    <div class="act"><span class="rule l"></span>Act II — Anatomy</div>
+    <h2 class="rise">How it's built</h2>
+    <div class="rise layers-wrap">
+      <div class="layer"><b>Execution harness</b><span>headless agent sessions — one-shot workers, no state leaks</span></div>
+      <div class="layer"><b>The vault</b><span>markdown + frontmatter, synced to Cortex Search</span></div>
+      <div class="layer"><b>Shared context layer</b><span>every session loads the right rules — per-agent files, one retrieval core</span></div>
+      <div class="layer"><b>Orchestration</b><span>parallel worker pool today · LangGraph where cycles and gates are needed</span></div>
+      <div class="layer"><b>Slack</b><span>the human surface — reports out, approvals in, questions answered</span></div>
+      <div class="layer"><b>Data sources</b><span>CRM · data warehouse · calendar</span></div>
+    </div>
+    <div class="stats rise" style="margin-top:24px;">
+      <div class="stat"><div class="v">7</div><div class="l">agent skills — structured workflows, one job each</div></div>
+      <div class="stat"><div class="v">18</div><div class="l">live query tools — credits, warehouses, spill, users, tasks…</div></div>
+      <div class="stat"><div class="v">12</div><div class="l">pipeline scripts — extraction, generation, graph, sync</div></div>
+      <div class="stat"><div class="v">7</div><div class="l">toolbox modules — snowhouse, slack, github, vault, health…</div></div>
+    </div>
+  </section>
+
+  <!-- 6 · THREE DOORS -->
+  <section class="slide fade" id="slide-6">
+    <div class="act"><span class="rule l"></span>Act II — Interfaces</div>
+    <h2 class="rise">Same agents. Three doors.</h2>
+    <div class="cards c3 rise">
+      <div class="card"><h3>🤖 Headless</h3>
+        <p>Scheduled refreshes, daemons. Writes the vault, fires the reports. No human in the loop.</p></div>
+      <div class="card"><h3>💬 Slack</h3>
+        <p>The team's door. <b style="color:var(--good)">Read-only</b> — questions answered from the vault. Never triggers writes.</p></div>
+      <div class="card"><h3>⌨️ In-session</h3>
+        <p>The operator's door. Full toolkit — every skill, script, and query, with human judgment in the loop.</p></div>
+    </div>
+    <div class="kicker rise">The doors decide <em>the permissions</em>.</div>
+  </section>
+
+  <!-- 7 · EVAL GATED -->
+  <section class="slide fade" id="slide-7">
+    <div class="act"><span class="rule l"></span>Act III — The Standard</div>
+    <h2 class="rise">You can't unit-test judgment</h2>
+    <p class="sub rise" style="margin-top:0">So every structural change is gated by behavioral evaluation —
+    real questions, run through real agent sessions, before and after.</p>
+    <div class="pipe rise">
+      <div class="step"><div class="n">01</div><b>Baseline</b><span>Golden questions + resolution checks captured against the running system</span></div>
+      <div class="step"><div class="n">02</div><b>Change</b><span>Refactor, new context, new skill — on a branch</span></div>
+      <div class="step"><div class="n">03</div><b>Eval gates</b><span>Sources must match. Facts must match. Zero regressions.</span></div>
+      <div class="step"><div class="n">04</div><b>Merge</b><span>Live smoke test, full run — only then does main change</span></div>
+    </div>
+    <div class="kicker rise">We test <em>retrieval behavior itself</em> — not mocks.</div>
+  </section>
+
+  <!-- 8 · TODAY -->
+  <section class="slide fade" id="slide-8">
+    <div class="act"><span class="rule l"></span>Act III — What's Real Today</div>
+    <h2 class="rise">Not a demo</h2>
+    <div class="stats rise">
+      <div class="stat"><div class="v">88</div><div class="l">accounts refreshed in parallel — overnight, unattended</div></div>
+      <div class="stat"><div class="v">~8h</div><div class="l">full portfolio refresh at 6 workers, with auth watchdog + auto-resume</div></div>
+      <div class="stat"><div class="v">15+12</div><div class="l">golden questions + resolution checks gate every structural change</div></div>
+      <div class="stat"><div class="v">7 PRs</div><div class="l">merged via the gated agent workflow in the first weeks</div></div>
+    </div>
+    <div class="rise" style="display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start; justify-content:center;">
+      <div class="slack">
+        <div class="hd">#pipeline-weekly · posted automatically</div>
+        <b>📋 Pipeline — Q3</b> <span class="dim">· 7 use cases · $1.1M · 3 flagged</span><br><br>
+        <b>🎯 Go-lives this quarter</b><br>
+        <span class="dim">✓ CoCo Platform · $200K · Oct 23</span><br>
+        <span class="dim">✓ Supply Chain Analytics · $150K · Oct 31</span><br>
+        <span class="dim">⚠ Conversational AI · stalled, no partner · escalated</span><br><br>
+        <span class="dim">🤖 Ask a follow-up — start a message with "?"</span>
+      </div>
+      <ul class="clean" style="margin-top:0">
+        <li><b>Weekly pipeline report</b> to the team channel — go-lives, flags, next steps</li>
+        <li><b>Follow-up questions</b> answered from the vault, read-only</li>
+        <li><b>Feature development</b> via agent with Slack approval gates — real PRs, real merges</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 9 · ROADMAP -->
+  <section class="slide fade" id="slide-9">
+    <div class="act"><span class="rule l"></span>Act III — Roadmap</div>
+    <h2 class="rise">What's left</h2>
+    <div class="rag rise">
+      <h3>⚠ Critical — RAG 2.0 <span class="iss">#20</span></h3>
+      <p>Today only known-entity lookups are reliable: one file, one answer. Open questions
+      ("what blockers came up across the portfolio?") and graph questions ("who connects this
+      stalled use case to other accounts?") need <b>working embeddings</b>, <b>multi-hop traversal</b>
+      over the relationship graph, and <b>Type 2/3 golden questions in the eval</b> — so the gap is
+      measured, not just felt. Everything consumer-facing waits on this.</p>
+    </div>
+    <div class="cols rise">
+      <div class="col"><h4>Near term</h4>
+        <ul>
+          <li><b>Analyst agent</b> — cross-account patterns, specs</li>
+          <li><b>Researcher agent</b> — external intelligence</li>
+          <li><b>Q&amp;A daemon</b> — scheduled + hardened</li>
+        </ul>
+      </div>
+      <div class="col"><h4>Platform</h4>
+        <ul>
+          <li><b>Multi-agent orchestration</b> — LangGraph across all agents</li>
+          <li><b>Tool MCP server</b> — read-only toolset for Slack, full for operator <span class="iss">#11</span></li>
+          <li><b>Cloud path</b> — vault → Cortex Search → Cortex Agent, beyond the laptop</li>
+        </ul>
+      </div>
+      <div class="col"><h4>Quality</h4>
+        <ul>
+          <li><b>Tier-2 LLM-as-judge</b> — open-ended answer quality <span class="iss">#19</span></li>
+          <li><b>Retrieval eval</b> — permanent regression suite <span class="iss">#17</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · PRINCIPLES -->
+  <section class="slide fade" id="slide-10">
+    <div class="act"><span class="rule l"></span>Act III — Principles</div>
+    <h2 class="rise">Four rules, never bent</h2>
+    <div class="cards c2 rise">
+      <div class="card"><h3>1 · Vault-first</h3><p>Agents read before they reason. Live warehouse queries are the last resort, not the reflex.</p></div>
+      <div class="card"><h3>2 · Permissions per interface</h3><p>Slack reads. The operator writes. The door decides — not the user, not the prompt.</p></div>
+      <div class="card"><h3>3 · Eval-gated change</h3><p>No structural change without behavioral comparison. The gate is deterministic, reproducible, binary.</p></div>
+      <div class="card"><h3>4 · Local-first, cloud-ready</h3><p>Everything runs on the SE's machine today. The vault sync is the bridge to scale.</p></div>
+    </div>
+    <div class="kicker rise">The methodology <em>is the product</em>.</div>
+  </section>
+
+  <!-- 11 · CLOSING -->
+  <section class="slide fade" id="slide-11">
+    <div class="act"><span class="rule l"></span>Finale</div>
+    <h1 class="rise" style="font-size:clamp(34px,5.4vw,72px)">We built the GTM agent —<br>
+    <span style="background:linear-gradient(90deg,var(--accent),var(--accent-2)); -webkit-background-clip:text; background-clip:text; color:transparent;">and the way to change it safely.</span></h1>
+    <p class="sub rise">Every component openable, inspectable, improvable: agents, shared context,
+    eval harness, vault schema. Issue-tracked, gate-merged, production-proven.</p>
+    <div class="kicker rise">Apply the pattern to <em>your territory</em>.</div>
+  </section>
+
+</div>
+
+<div class="progress" id="progress" style="width:9.09%"></div>
+<div class="hud">
+  <div class="brand">The Agentic GTM Engine</div>
+  <div class="counter" id="counter">01 / 11</div>
+</div>
+<div class="hint">→ / ← to navigate · click right / left halves</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var current = 0;
+  var counter = document.getElementById('counter');
+  var progress = document.getElementById('progress');
+  var hasGsap = typeof window.gsap !== 'undefined';
+
+  function show(n, dir) {
+    if (n < 0 || n >= slides.length) return;
+    var prev = slides[current];
+    current = n;
+    var next = slides[current];
+
+    prev.classList.remove('active');
+    next.classList.add('active');
+
+    counter.textContent = String(current + 1).padStart(2, '0') + ' / ' + String(slides.length).padStart(2, '0');
+    progress.style.width = ((current + 1) / slides.length * 100) + '%';
+
+    // GSAP choreography (fallback: CSS transitions via .fade/.rise handle it)
+    if (hasGsap) {
+      var rises = next.querySelectorAll('.rise');
+      gsap.fromTo(rises,
+        { opacity: 0, y: 34 },
+        { opacity: 1, y: 0, duration: .7, stagger: .09,
+          ease: 'power3.out', overwrite: true });
+      if (dir) {
+        gsap.fromTo(next,
+          { x: dir > 0 ? 60 : -60, opacity: 0.35 },
+          { x: 0, opacity: 1, duration: .5, ease: 'power2.out' });
+      }
+    }
+  }
+
+  function go(dir) { show(current + dir, dir); }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+    else if (e.key === 'Home') { show(0, -1); }
+    else if (e.key === 'End') { show(slides.length - 1, 1); }
+  });
+
+  document.getElementById('deck').addEventListener('click', function (e) {
+    var x = e.clientX / window.innerWidth;
+    go(x > 0.5 ? 1 : -1);
+  });
+
+  // touch swipe
+  var tx = null;
+  document.addEventListener('touchstart', function (e) { tx = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener('touchend', function (e) {
+    if (tx === null) return;
+    var dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1);
+    tx = null;
+  }, { passive: true });
+})();
+</script>
+</body>
+</html>
