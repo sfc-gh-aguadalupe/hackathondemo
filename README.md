@@ -75,9 +75,9 @@ The planted narrative is computed from the data rather than written directly int
 
 The verified build target is:
 
-- Account: `ZVB39012`
-- Region: `AWS_US_WEST_2`
-- Connection name: `uswest2demo`
+- Account: `<your-account-id>`
+- Region: `<your-region>`
+- Connection name: `<your-connection>`
 - Role used for the build: `ACCOUNTADMIN`
 - Warehouse: `COMPUTE_WH` for initial setup, then `LUMORA_WH`
 - Database: `LUMORA_DEMO`
@@ -91,11 +91,11 @@ The account or role must be able to create and use:
 - A semantic view.
 - A Streamlit in Snowflake application and stage.
 
-The local Snowflake CLI must have a working connection named `uswest2demo`:
+The local Snowflake CLI must have a working connection named `<your-connection>`:
 
 ```bash
 snow connection list
-snow sql -c uswest2demo -q "select current_account(), current_role(), current_warehouse()"
+snow sql -c <your-connection> -q "select current_account(), current_role(), current_warehouse()"
 ```
 
 If authentication fails with an invalid or expired session token, refresh the Snowflake CLI authentication before running the rebuild. The SQL objects can also be executed one statement at a time through an authenticated Snowflake SQL client.
@@ -105,7 +105,7 @@ If authentication fails with an invalid or expired session token, refresh the Sn
 From the repository root:
 
 ```bash
-./build_all.sh uswest2demo
+./build_all.sh <your-connection>
 ```
 
 The rebuild is idempotent for the main views, tables, models, services, and agent. The synthetic data is anchored to `2026-09-15` so that the storyline does not drift as the calendar advances.
@@ -117,7 +117,7 @@ The rebuild is idempotent for the main views, tables, models, services, and agen
 Run the acceptance checks after the build:
 
 ```bash
-snow sql -c uswest2demo -f sql/90_acceptance.sql
+snow sql -c <your-connection> -f sql/90_acceptance.sql
 ```
 
 The checks cover:
@@ -148,13 +148,13 @@ LUMORA_DEMO.APP.LUMORA_COCKPIT
 The verified app URL is:
 
 ```text
-https://app.snowflake.com/SFSEEUROPE/USWEST2DEMO/streamlit-apps/LUMORA_DEMO.APP.LUMORA_COCKPIT
+https://app.snowflake.com/<your-org>/<your-account>/streamlit-apps/LUMORA_DEMO.APP.LUMORA_COCKPIT
 ```
 
 Deploy from the repository root with a client that can read local files:
 
 ```bash
-snow sql -c uswest2demo -f sql/50_deploy_streamlit.sql
+snow sql -c <your-connection> -f sql/50_deploy_streamlit.sql
 ```
 
 The script creates or updates:

@@ -1792,7 +1792,7 @@ with tabs[5]:
                 expected_uplift = round(aud_total * (resp_rate / 100.0) * avg_units_per_order, 0)
                 agent_rec = st.session_state.get("c360_agent_rec", "Not yet generated.")
                 try:
-                    brief_id = f"BRIEF-{coco.tool('sql_execute', {'connection': 'uswest2demo', 'sql': 'SELECT LUMORA_DEMO.AGENT.SEQ_BRIEF.NEXTVAL AS nv', 'description': 'brief seq'})}"
+                    brief_id = f"BRIEF-{coco.tool('sql_execute', {'connection': '<your-connection>', 'sql': 'SELECT LUMORA_DEMO.AGENT.SEQ_BRIEF.NEXTVAL AS nv', 'description': 'brief seq'})}"
                 except Exception:
                     brief_id = f"BRIEF-{datetime.now().strftime('%Y%m%d%H%M%S')}"
                 try:
@@ -1800,7 +1800,7 @@ with tabs[5]:
                     sql_region   = c360_region if c360_region != C360_ALL else "All"
                     sql_cat      = c360_cat    if c360_cat    != C360_ALL else "All"
                     coco.tool("sql_execute", {
-                        "connection": "uswest2demo",
+                        "connection": "<your-connection>",
                         "description": "insert promotion brief",
                         "sql": f"""
                             INSERT INTO LUMORA_DEMO.AGENT.FACT_PROMOTION_BRIEF

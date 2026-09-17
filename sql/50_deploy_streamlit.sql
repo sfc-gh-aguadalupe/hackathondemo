@@ -7,7 +7,7 @@
 -- can read the local files (Snowflake CLI, SnowSQL, or a driver session) —
 -- it will not work from a worksheet.
 --
---   snow sql -c uswest2demo -f sql/50_deploy_streamlit.sql
+--   snow sql -c <your-connection> -f sql/50_deploy_streamlit.sql
 --
 -- Paths assume the repository root is the working directory.
 -- =====================================================================

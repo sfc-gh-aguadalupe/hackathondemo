@@ -16,9 +16,9 @@ The app is a decision cockpit, not a finance system of record. All source data i
 
 Open these tabs before the audience arrives:
 
-- Streamlit app: `https://app.snowflake.com/SFSEEUROPE/USWEST2DEMO/streamlit-apps/LUMORA_DEMO.APP.LUMORA_COCKPIT`
+- Streamlit app: `https://app.snowflake.com/<your-org>/<your-account>/streamlit-apps/LUMORA_DEMO.APP.LUMORA_COCKPIT`
 - Presentation: `pitch/lumora.html`
-- Optional SQL client connected to `uswest2demo` for backup evidence.
+- Optional SQL client connected to `<your-connection>` for backup evidence.
 
 Check the following:
 
